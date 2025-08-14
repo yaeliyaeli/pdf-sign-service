@@ -2,83 +2,79 @@
 <html lang="he">
 <head>
   <meta charset="UTF-8">
-  <title>העלאת מסמך לחתימה דיגיטלית</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>חתימת מסמך</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f9f9f9;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 0;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
       align-items: center;
-      padding: 50px;
+      height: 100vh;
+    }
+
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 450px;
+      text-align: center;
     }
 
     h1 {
       color: #333;
+      margin-bottom: 25px;
+      font-size: 24px;
     }
 
-    form {
-      background-color: #fff;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+    input[type="file"] { display: none; }
 
-    input[type="file"] {
-      margin-bottom: 20px;
-      font-size: 16px;
-    }
-
-    button {
-      background-color: #4CAF50;
+    label {
+      display: inline-block;
+      padding: 12px 20px;
+      background-color: #007BFF;
       color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 20px;
+      transition: background 0.3s;
+    }
+
+    label:hover { background-color: #0056b3; }
+
+    .submit-btn {
       padding: 12px 25px;
+      background-color: #28a745;
+      color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 16px;
+      transition: background 0.3s;
     }
 
-    button:hover {
-      background-color: #45a049;
-    }
+    .submit-btn:hover { background-color: #1e7e34; }
 
-    .info {
-      margin-top: 20px;
-      color: #555;
-      font-size: 14px;
-      text-align: center;
-    }
-
-    a {
-      display: inline-block;
-      margin-top: 15px;
-      color: #1a73e8;
-      text-decoration: none;
-      font-weight: bold;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
+    .note { margin-top: 20px; font-size: 14px; color: #666; }
   </style>
 </head>
 <body>
 
-  <h1>העלאת מסמך Word לחתימה דיגיטלית</h1>
-
-  <form action="/upload" method="POST" enctype="multipart/form-data">
-    <input type="file" name="wordFile" accept=".doc,.docx" required />
-    <button type="submit">העלה מסמך</button>
-  </form>
-
-  <div class="info">
-    לאחר ההעלאה, המסמך יומר ל-PDF ותקבלו לינק לחתימה דיגיטלית.
-    <br/>
-    ניתן לחתום עם העכבר או האצבע, ולשלוח את הקובץ החתום למייל שלכם.
+  <div class="container">
+    <h1>חתום על המסמך שלך</h1>
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+      <input type="file" id="file" name="wordFile" accept=".doc,.docx">
+      <label for="file">בחר מסמך Word</label><br>
+      <button type="submit" class="submit-btn">שלח לחתימה</button>
+    </form>
+    <div class="note">
+      אחרי השליחה, תקבל קישור למסמך החתום.
+    </div>
   </div>
 
 </body>

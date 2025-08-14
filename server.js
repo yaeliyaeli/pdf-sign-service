@@ -3,7 +3,7 @@ const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const { PDFDocument } = require('pdf-lib');
+const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
 const mammoth = require('mammoth');
@@ -47,18 +47,25 @@ app.post('/upload', upload.single('wordFile'), async (req, res) => {
     const docxPath = path.join(__dirname, 'uploads', req.file.filename);
     const pdfPath = docxPath + '.pdf';
 
+    // המרת Word ל-PDF באמצעות mammoth
     const { value: htmlContent } = await mammoth.convertToHtml({ path: docxPath });
 
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage();
     const { width, height } = page.getSize();
 
-    page.drawText(htmlContent.replace(/<[^>]+>/g, ''), {
+    // שימוש בפונט שתומך בעברית
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const text = htmlContent.replace(/<[^>]+>/g, '');
+
+    page.drawText(text, {
       x: 50,
       y: height - 50,
       size: 12,
+      font,
+      color: rgb(0, 0, 0),
       maxWidth: width - 100,
-      lineHeight: 14
+      lineHeight: 14,
     });
 
     const pdfBytes = await pdfDoc.save();
@@ -137,6 +144,7 @@ app.post('/sign/:pdfFile', async (req, res) => {
     const signedPdfPath = path.join(__dirname, 'uploads', 'signed_' + pdfFile);
     fs.writeFileSync(signedPdfPath, pdfBytes);
 
+    // שליחת מייל
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }

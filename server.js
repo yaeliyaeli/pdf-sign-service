@@ -3,10 +3,10 @@ const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const { PDFDocument } = require('pdf-lib');
+const puppeteer = require('puppeteer');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
-const mammoth = require('mammoth'); // חבילה לקריאה מ-Word
+const mammoth = require('mammoth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,24 +50,27 @@ app.post('/upload', upload.single('wordFile'), async (req, res) => {
     const docxPath = path.join(__dirname, 'uploads', req.file.filename);
     const pdfPath = docxPath + '.pdf';
 
-    // המרת Word ל-PDF באמצעות mammoth
+    // המרת Word ל-HTML עם mammoth
     const { value: htmlContent } = await mammoth.convertToHtml({ path: docxPath });
 
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage();
-    const { width, height } = page.getSize();
-
-    // כתיבת הטקסט מה-Word למסמך PDF
-    page.drawText(htmlContent.replace(/<[^>]+>/g, ''), {
-      x: 50,
-      y: height - 50,
-      size: 12,
-      maxWidth: width - 100,
-      lineHeight: 14
+    // פתיחת Puppeteer עם הגדרות שמתאימות ל-Render
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
+    const page = await browser.newPage();
 
-    const pdfBytes = await pdfDoc.save();
-    fs.writeFileSync(pdfPath, pdfBytes);
+    await page.setContent(`
+      <html lang="he">
+        <head>
+          <meta charset="UTF-8"/>
+          <style>body { font-family: Arial, sans-serif; direction: rtl; }</style>
+        </head>
+        <body>${htmlContent}</body>
+      </html>
+    `, { waitUntil: 'networkidle0' });
+
+    await page.pdf({ path: pdfPath, format: 'A4' });
+    await browser.close();
 
     const link = `/sign/${path.basename(pdfPath)}`;
     res.send(`<p>המסמך הומר ל-PDF! לחתום כאן:</p><a href="${link}">${link}</a>`);
@@ -127,6 +130,7 @@ app.post('/sign/:pdfFile', async (req, res) => {
     const pdfPath = path.join(__dirname, 'uploads', pdfFile);
     const { signatureData } = req.body;
 
+    const { PDFDocument } = require('pdf-lib');
     const existingPdfBytes = fs.readFileSync(pdfPath);
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const pages = pdfDoc.getPages();

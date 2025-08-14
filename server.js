@@ -1,14 +1,12 @@
-// server.js
 require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const libre = require('libreoffice-convert');
-const { v4: uuidv4 } = require('uuid');
 const { PDFDocument } = require('pdf-lib');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
+const mammoth = require('mammoth'); // חבילה לקריאה מ-Word
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,7 +23,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const storage = multer.diskStorage({
   destination: './uploads',
   filename: (req, file, cb) => {
-    cb(null, uuidv4() + path.extname(file.originalname));
+    cb(null, Date.now() + path.extname(file.originalname));
   }
 });
 
@@ -34,12 +32,7 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     const allowedExt = /doc|docx/;
     const ext = path.extname(file.originalname).toLowerCase();
-    const mime = file.mimetype;
-    if (
-      allowedExt.test(ext) &&
-      (mime === 'application/msword' ||
-       mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-    ) {
+    if (allowedExt.test(ext)) {
       cb(null, true);
     } else {
       cb(new Error('רק קבצי Word מותרים'));
@@ -52,25 +45,39 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.post('/upload', (req, res) => {
-  upload.single('wordFile')(req, res, async (err) => {
-    if (err) return res.status(400).send(err.message);
+app.post('/upload', upload.single('wordFile'), async (req, res) => {
+  try {
+    const docxPath = path.join(__dirname, 'uploads', req.file.filename);
+    const pdfPath = docxPath + '.pdf';
 
-    const fileId = req.file.filename;
-    const docxPath = path.join(__dirname, 'uploads', fileId);
-    const pdfPath = path.join(__dirname, 'uploads', fileId + '.pdf');
+    // המרת Word ל-PDF באמצעות mammoth
+    const { value: htmlContent } = await mammoth.convertToHtml({ path: docxPath });
 
-    // Convert DOCX to PDF
-    const docxBuf = fs.readFileSync(docxPath);
-    libre.convert(docxBuf, '.pdf', undefined, (err, done) => {
-      if (err) return res.status(500).send('שגיאה בהמרת קובץ ל-PDF');
-      fs.writeFileSync(pdfPath, done);
-      const link = `/sign/${fileId}.pdf`;
-      res.send(`<p>המסמך הומר ל-PDF! לחתום כאן:</p><a href="${link}">${link}</a>`);
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage();
+    const { width, height } = page.getSize();
+
+    // כתיבת הטקסט מה-Word למסמך PDF
+    page.drawText(htmlContent.replace(/<[^>]+>/g, ''), {
+      x: 50,
+      y: height - 50,
+      size: 12,
+      maxWidth: width - 100,
+      lineHeight: 14
     });
-  });
+
+    const pdfBytes = await pdfDoc.save();
+    fs.writeFileSync(pdfPath, pdfBytes);
+
+    const link = `/sign/${path.basename(pdfPath)}`;
+    res.send(`<p>המסמך הומר ל-PDF! לחתום כאן:</p><a href="${link}">${link}</a>`);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('שגיאה בהמרת קובץ ל-PDF');
+  }
 });
 
+// דף חתימה דיגיטלית
 app.get('/sign/:pdfFile', (req, res) => {
   const pdfFile = req.params.pdfFile;
   res.send(`
@@ -113,6 +120,7 @@ app.get('/sign/:pdfFile', (req, res) => {
   `);
 });
 
+// שמירת החתימה ושליחה במייל
 app.post('/sign/:pdfFile', async (req, res) => {
   try {
     const pdfFile = req.params.pdfFile;
@@ -135,14 +143,10 @@ app.post('/sign/:pdfFile', async (req, res) => {
     fs.writeFileSync(signedPdfPath, pdfBytes);
 
     // שליחת מייל
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
-
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+    });
 
     await transporter.sendMail({
       from: `"PDF Sign Service" <${process.env.EMAIL_USER}>`,
@@ -159,7 +163,6 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// הפעלת השרת
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

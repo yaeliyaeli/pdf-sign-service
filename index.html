@@ -1,14 +1,85 @@
 <!DOCTYPE html>
 <html lang="he">
 <head>
-  <meta charset="UTF-8" />
-  <title>העלאת קובץ Word לחתימה</title>
+  <meta charset="UTF-8">
+  <title>העלאת מסמך לחתימה דיגיטלית</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 50px;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    form {
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    input[type="file"] {
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .info {
+      margin-top: 20px;
+      color: #555;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    a {
+      display: inline-block;
+      margin-top: 15px;
+      color: #1a73e8;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
-  <h2>העלאת מסמך Word לחתימה דיגיטלית</h2>
+
+  <h1>העלאת מסמך Word לחתימה דיגיטלית</h1>
+
   <form action="/upload" method="POST" enctype="multipart/form-data">
     <input type="file" name="wordFile" accept=".doc,.docx" required />
-    <button type="submit">העלה</button>
+    <button type="submit">העלה מסמך</button>
   </form>
+
+  <div class="info">
+    לאחר ההעלאה, המסמך יומר ל-PDF ותקבלו לינק לחתימה דיגיטלית.
+    <br/>
+    ניתן לחתום עם העכבר או האצבע, ולשלוח את הקובץ החתום למייל שלכם.
+  </div>
+
 </body>
 </html>
